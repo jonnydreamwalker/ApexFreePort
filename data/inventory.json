@@ -1,0 +1,21 @@
+{
+  "updated": "2026-07-22T00:00:00.000Z",
+  "warehouse": "Your Warehouse",
+  "publicFeed": true,
+  "items": [
+    {
+      "sku": "DEMO-001",
+      "name": "Sample Product",
+      "category": "General",
+      "description": "Replace with your inventory in the admin deck.",
+      "price": 19.99,
+      "qty": 10,
+      "reserved": 0,
+      "lane": "direct",
+      "status": "active",
+      "image": "",
+      "location": "WH-A1"
+    }
+  ],
+  "movements": []
+}

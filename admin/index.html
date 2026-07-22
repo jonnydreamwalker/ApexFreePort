@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ApexFreePort Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen p-6">
+  <div class="max-w-5xl mx-auto space-y-6">
+    <header class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-emerald-400">ApexFreePort</h1>
+        <p id="wh" class="text-zinc-500 text-sm"></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="feedBtn" type="button"
+          class="px-4 py-2 rounded-xl font-bold text-xs uppercase border border-red-800 bg-red-950/50 text-red-300">
+          Feed: …
+        </button>
+        <form method="POST" action="/logout"><button class="text-zinc-500 text-sm hover:text-white">Logout</button></form>
+      </div>
+    </header>
+
+    <div class="overflow-x-auto border border-zinc-800 rounded-2xl">
+      <table class="w-full text-sm">
+        <thead class="bg-zinc-900 text-zinc-400 text-left">
+          <tr>
+            <th class="p-3">SKU</th>
+            <th class="p-3">Name</th>
+            <th class="p-3">Lane</th>
+            <th class="p-3">Price</th>
+            <th class="p-3">Qty</th>
+            <th class="p-3">+/-</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <section class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-3">
+      <h2 class="font-bold text-emerald-400">Add / update SKU</h2>
+      <div class="grid md:grid-cols-2 gap-3">
+        <input id="sku" placeholder="SKU" class="bg-zinc-800 rounded-xl px-3 py-2" />
+        <input id="name" placeholder="Name" class="bg-zinc-800 rounded-xl px-3 py-2" />
+        <input id="category" placeholder="Category" class="bg-zinc-800 rounded-xl px-3 py-2" />
+        <input id="price" type="number" step="0.01" placeholder="Price" class="bg-zinc-800 rounded-xl px-3 py-2" />
+        <input id="qty" type="number" placeholder="Qty" class="bg-zinc-800 rounded-xl px-3 py-2" />
+        <input id="lane" placeholder="Lane (direct/external)" class="bg-zinc-800 rounded-xl px-3 py-2" />
+        <textarea id="description" placeholder="Description" class="bg-zinc-800 rounded-xl px-3 py-2 md:col-span-2"></textarea>
+      </div>
+      <button id="saveBtn" type="button" class="bg-emerald-600 hover:bg-emerald-500 font-bold uppercase text-xs px-4 py-2 rounded-xl">Save</button>
+    </section>
+  </div>
+
+  <script>
+    async function load() {
+      const r = await fetch("/api/inventory");
+      const d = await r.json();
+      document.getElementById("wh").textContent = (d.warehouse || "") + " · updated " + (d.updated || "");
+      const on = d.publicFeed !== false;
+      const btn = document.getElementById("feedBtn");
+      btn.textContent = on ? "DON'T TOUCH — FEED ON" : "FEED OFF — SAFE TO EDIT";
+      btn.className = on
+        ? "px-4 py-2 rounded-xl font-bold text-xs uppercase border border-red-600 bg-red-600 text-white"
+        : "px-4 py-2 rounded-xl font-bold text-xs uppercase border border-zinc-600 bg-zinc-800 text-zinc-300";
+      btn.onclick = async () => {
+        await fetch("/api/feed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ publicFeed: !on }),
+        });
+        load();
+      };
+      const tb = document.getElementById("rows");
+      tb.innerHTML = (d.items || [])
+        .map(
+          (i) =>
+            "<tr class=\"border-t border-zinc-800\">" +
+            "<td class=\"p-3 font-mono text-xs\">" +
+            i.sku +
+            "</td>" +
+            "<td class=\"p-3\">" +
+            i.name +
+            "</td>" +
+            "<td class=\"p-3\">" +
+            (i.lane || "") +
+            "</td>" +
+            "<td class=\"p-3\">$" +
+            (Number(i.price) || 0).toFixed(2) +
+            "</td>" +
+            "<td class=\"p-3\">" +
+            (i.qty || 0) +
+            "</td>" +
+            "<td class=\"p-3 space-x-1\">" +
+            "<button data-sku=\"" +
+            i.sku +
+            "\" data-d=\"1\" class=\"adj px-2 py-1 bg-zinc-800 rounded\">+</button>" +
+            "<button data-sku=\"" +
+            i.sku +
+            "\" data-d=\"-1\" class=\"adj px-2 py-1 bg-zinc-800 rounded\">−</button>" +
+            "</td></tr>"
+        )
+        .join("");
+      document.querySelectorAll(".adj").forEach((b) => {
+        b.onclick = async () => {
+          await fetch("/api/inventory/adjust", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sku: b.dataset.sku, delta: Number(b.dataset.d) }),
+          });
+          load();
+        };
+      });
+    }
+    document.getElementById("saveBtn").onclick = async () => {
+      const body = {
+        sku: document.getElementById("sku").value.trim(),
+        name: document.getElementById("name").value.trim(),
+        category: document.getElementById("category").value.trim(),
+        price: document.getElementById("price").value,
+        qty: document.getElementById("qty").value,
+        lane: document.getElementById("lane").value.trim() || "direct",
+        description: document.getElementById("description").value.trim(),
+      };
+      if (!body.sku) return alert("SKU required");
+      await fetch("/api/inventory/upsert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      load();
+    };
+    load();
+  </script>
+</body>
+</html>

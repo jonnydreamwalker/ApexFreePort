@@ -1,0 +1,10 @@
+node_modules/
+npm-debug.log*
+.env
+.env.*
+server.log
+data/uploads/*
+!data/uploads/.gitkeep
+.DS_Store
+*.pem
+*.ppk
