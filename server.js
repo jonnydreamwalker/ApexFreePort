@@ -55,6 +55,22 @@ function write(d) {
   fs.writeFileSync(DATA, JSON.stringify(d, null, 2));
 }
 
+function seedObject(row) {
+  return {
+    sku: row.sku,
+    name: row.name || row.sku,
+    category: row.category || "General",
+    description: row.description || "",
+    price: Number(row.price) || 0,
+    qty: Number(row.qty) || 0,
+    reserved: Number(row.reserved) || 0,
+    lane: row.lane || "direct",
+    status: row.status || "active",
+    image: row.image || "",
+    location: row.location || "",
+  };
+}
+
 function auth(req, res, next) {
   if (req.session && req.session.ok) return next();
   if (req.path.indexOf("/api/") === 0) {
@@ -176,7 +192,7 @@ app.post("/api/inventory/upsert", auth, function (req, res) {
     if (i >= 0) {
       d.items[i] = Object.assign({}, d.items[i], row);
     } else {
-      d.items.push( steObject(row) );
+      d.items.push(seedObject(row));
     }
     write(d);
     res.json({ ok: true });
@@ -184,24 +200,6 @@ app.post("/api/inventory/upsert", auth, function (req, res) {
     res.status(500).json({ error: "fail" });
   }
 });
-
-function steObject(row) {
-  return {
-    sku: row.sku,
-    name: row.name || row.sku,
-    category: row.category || "General",
-    description: row.description || "",
-    price: Number(row.price) || 0,
-    qty: Number(row.qty) || 0,
-    reserved: Number(row.reserved) || 0,
-    lane: row.lane || "direct",
-    status: row.status || "active",
-    image: row.image || "",
-    location: row.location || "",
-  };
-}
-
-// Fix upsert push - I had a typo steObject - the code above calls steObject which is fine
 
 app.post("/api/inventory/upload", auth, upload.single("image"), function (req, res) {
   try {
